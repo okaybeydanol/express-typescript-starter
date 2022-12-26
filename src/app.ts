@@ -35,7 +35,7 @@ const initializeDatabase = () => {
   }
   set('strictQuery', true);
   connect(dbConnection.url, error => {
-    error !== null && logger.error(`${error.name}, Message: ${error.message}`);
+    error !== null && logger.error(`MongoDB: ${error.name}, Message: ${error.message}`);
     !error && logger.info(`MongoDB connected. URL: ${dbConnection.url}`);
   });
 };
@@ -53,7 +53,8 @@ const initializeMiddlewares = () => {
 
 const initializeRedis = async () => {
   redisClient.on('error', error => {
-    logger.error(error.message);
+    logger.error(`Redis: ${error.name}, Message: ${error.message}`);
+    redisClient.disconnect();
   });
   redisClient.on('connect', () => {
     logger.info('Redis connected.');
@@ -73,9 +74,13 @@ const initializeErrorHandling = () => {
 };
 
 const listen = () => {
-  app.listen(port, () => {
-    logger.info(`Server connected. ENV: ${env} - PORT: ${port}`);
-  });
+  app
+    .listen(port, () => {
+      logger.info(`Server connected. ENV: ${env} - PORT: ${port}`);
+    })
+    .on('error', err => {
+      logger.error(`Server: ${err.name}, Message: ${err.message}`);
+    });
 };
 
 export default App;
