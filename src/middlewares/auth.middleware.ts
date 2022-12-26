@@ -10,16 +10,17 @@ import { checkToken } from '@utils/utils';
 
 const authMiddleware = async (req: TypedRequestBody<AuthUserToken>, res: Response, next: NextFunction) => {
   try {
-    const { token } = await checkToken(req.headers.authorization);
+    const authorization = req.headers.authorization;
+    const { token } = await checkToken(authorization);
 
     const secretKey: string | undefined = SECRET_KEY;
     if (!secretKey) throw new HttpException(404, 'Secret key not found');
 
     verify(token, secretKey, {}, async (err, decoded) => {
-      const payload = decoded as { _id: string; exp: number };
       try {
         if (err) throw new HttpException(401, err.message);
 
+        const payload = decoded as { _id: string; exp: number };
         const findUser: User | null = await userModel.findById(payload._id);
         if (!findUser) throw new HttpException(404, 'User not found');
 
