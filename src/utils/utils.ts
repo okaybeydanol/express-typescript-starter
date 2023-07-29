@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { validationResult, ValidationChain } from 'express-validator';
-import { sign } from 'jsonwebtoken';
+import { sign, verify } from 'jsonwebtoken';
 import { SECRET_KEY, TOKEN_EXPIRE } from '@/config';
 import { redisClient } from '@/app';
 import { HttpException } from '@exceptions/HttpException';
@@ -41,4 +41,16 @@ export const checkToken = async (authorization: string | undefined): Promise<Tok
 
 export const getExpireAt = (seconds: number) => {
   return Math.floor(new Date().getTime() / 1000) + seconds;
+};
+
+export const verifyToken = (token: string, secretKey: string): Promise<{ _id: string; exp: number }> => {
+  return new Promise((resolve, reject) => {
+    verify(token, secretKey, {}, (err, decoded) => {
+      if (err) {
+        reject(new HttpException(401, err.message));
+      } else {
+        resolve(decoded as { _id: string; exp: number });
+      }
+    });
+  });
 };

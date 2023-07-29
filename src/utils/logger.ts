@@ -12,6 +12,18 @@ if (!existsSync(logDir)) {
 
 const logFormat = winston.format.printf(({ timestamp, level, message }) => `${timestamp} ${level}: ${message}`);
 
+const createDailyRotateFileTransport = (level: string, dirname: string) =>
+  new winstonDaily({
+    level: level,
+    datePattern: 'YYYY-MM-DD',
+    dirname: `${logDir}/${dirname}`,
+    filename: `%DATE%.log`,
+    maxFiles: 30,
+    json: false,
+    zippedArchive: true,
+    ...(level === 'error' && { handleExceptions: true }),
+  });
+
 const logger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp({
@@ -20,25 +32,8 @@ const logger = winston.createLogger({
     logFormat,
   ),
   transports: [
-    new winstonDaily({
-      level: 'debug',
-      datePattern: 'YYYY-MM-DD',
-      dirname: logDir + '/debug',
-      filename: `%DATE%.log`,
-      maxFiles: 30,
-      json: false,
-      zippedArchive: true,
-    }),
-    new winstonDaily({
-      level: 'error',
-      datePattern: 'YYYY-MM-DD',
-      dirname: logDir + '/error',
-      filename: `%DATE%.log`,
-      maxFiles: 30,
-      handleExceptions: true,
-      json: false,
-      zippedArchive: true,
-    }),
+    createDailyRotateFileTransport('debug', 'debug'),
+    createDailyRotateFileTransport('error', 'error'),
   ],
 });
 

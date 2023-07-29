@@ -1,5 +1,5 @@
 import express, { Router } from 'express';
-import { connect, set } from 'mongoose';
+import * as mongoose from 'mongoose';
 import * as redis from 'redis';
 import compression from 'compression';
 import hpp from 'hpp';
@@ -21,23 +21,37 @@ const path = HOST_PATH || '/';
 export const redisClient = redis.createClient();
 
 const App = (routes: Router[]) => {
-  initializeDatabase();
-  initializeMiddlewares();
-  initializeRoutes(routes);
-  initializeErrorHandling();
-  initializeRedis();
+  (async () => {
+    await initializeDatabase();
+    initializeMiddlewares();
+    initializeRoutes(routes);
+    initializeErrorHandling();
+    await initializeRedis();
+  })();
+
   return { listen };
 };
 
-const initializeDatabase = () => {
+
+const initializeDatabase = async () => {
   if (env !== 'production') {
-    set('debug', true);
+    mongoose.set('debug', true);
   }
-  set('strictQuery', true);
-  connect(dbConnection.url, error => {
-    error !== null && logger.error(`MongoDB: ${error.name}, Message: ${error.message}`);
-    !error && logger.info(`MongoDB connected. URL: ${dbConnection.url}`);
-  });
+
+  try {
+    await mongoose.connect(dbConnection.url);
+    logger.info(`MongoDB connected. URL: ${dbConnection.url}`);
+  } catch (error) {
+    if (mongoose.connection && mongoose.connection.readyState) {
+      await mongoose.connection.close();
+      logger.info('Connection closed');
+    }
+    if (error instanceof Error) {
+      logger.error(`MongoDB: ${error.name}, Message: ${error.message}`);
+    } else {
+      logger.error(`An unexpected error occurred: ${error}`);
+    }
+  }
 };
 
 const initializeMiddlewares = () => {

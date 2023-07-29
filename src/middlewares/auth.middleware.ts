@@ -6,7 +6,7 @@ import { HttpException } from '@exceptions/HttpException';
 import { AuthUserToken } from '@interfaces/auth.interface';
 import { TypedRequestBody } from '@interfaces/exchange.interface';
 import { User } from '@interfaces/user.interface';
-import { checkToken } from '@utils/utils';
+import { checkToken, verifyToken } from '@utils/utils';
 
 const authMiddleware = async (req: TypedRequestBody<AuthUserToken>, res: Response, next: NextFunction) => {
   try {
@@ -14,15 +14,14 @@ const authMiddleware = async (req: TypedRequestBody<AuthUserToken>, res: Respons
     const { token } = await checkToken(authorization);
 
     const secretKey: string | undefined = SECRET_KEY;
-    if (!secretKey) throw new HttpException(404, 'Secret key not found');
+    if (!secretKey) return next(new HttpException(404, 'Secret key not found'));
 
-    verify(token, secretKey, {}, async (err, decoded) => {
+    verify(token, secretKey, {}, async () => {
       try {
-        if (err) throw new HttpException(401, err.message);
+        const payload = await verifyToken(token, secretKey);
 
-        const payload = decoded as { _id: string; exp: number };
         const findUser: User | null = await userModel.findById(payload._id);
-        if (!findUser) throw new HttpException(404, 'User not found');
+        if (!findUser) return next(new HttpException(404, 'User not found'));
 
         req.body.token = token;
         req.body.user = findUser;

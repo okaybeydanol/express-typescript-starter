@@ -14,9 +14,7 @@ const register = async (userData: AuthRequest): Promise<User> => {
   if (findUser) throw new HttpException(409, `This email ${userData.email} already exists`);
 
   const hashedPassword = await hash(userData.password, 10);
-  const createUserData: User = await users.create({ ...userData, password: hashedPassword });
-
-  return createUserData;
+  return await users.create({ ...userData, password: hashedPassword });
 };
 
 const login = async (userData: AuthRequest): Promise<AuthUserToken> => {
